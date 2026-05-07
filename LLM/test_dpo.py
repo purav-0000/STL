@@ -3,8 +3,7 @@
 test_dpo.py
 ===========
 
-Command-line evaluation for DPO-trained LoRA models. Refactored from
-icml_2026_llm_dpo_test.py (Colab notebook) into a standalone script.
+Command-line evaluation for DPO-trained LoRA models.
 
 Loads a base model + LoRA adapter, evaluates on a test dataset using log-prob
 scoring of "Option ONE" vs "Option TWO", computes accuracy/precision/recall/F1,
@@ -32,7 +31,7 @@ HuggingFace dataset (auto-detect by extension):
 
     python test_dpo.py \\
         --model-path ./dpo_experiments/.../model \\
-        --test-dataset cmoyacal/hotel-strict-test-qadv-a0p50-seed7 \\
+        --test-dataset anonymous-author/hotel-strict-test-qadv-a0p50-seed7 \\
         --test-name adversarial
 
 Headless (no inline plot display, just save PNGs):
@@ -75,10 +74,9 @@ from typing import Any, Dict, List, Tuple
 
 
 # ============================================================
-# Below: helper functions verbatim from the original notebook
-# (eval, metrics, plotting). No logic changes.
+# Below: helper functions
 # ============================================================
-#@title Evaluation Functions
+
 
 # =====================================
 # function: analyze unknown predictions

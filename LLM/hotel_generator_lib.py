@@ -6,17 +6,6 @@ hotel_generator_lib.py
 Library-only version of the hotel data generator. Contains the primitives
 needed by hotel_data_pipeline.py and nothing else.
 
-Compared to icml_2026_llm_data_generation_original.py:
-  - No module-level execution: importing this file does NOT generate data,
-    log into HuggingFace, or push to the Hub.
-  - No notebook cell markers (#@title) at the top.
-  - No dataset-builder helpers (generate_dataset, generate_dataset_with_ties),
-    analyzers, or HF push code. hotel_data_pipeline.py implements its own
-    strict-anchored dataset construction on top of these primitives.
-  - All public symbols match the original by name and signature, so
-    hotel_data_pipeline.py imports the same way:
-        --generator-path hotel_generator_lib.py
-
 Public API (everything else is implementation detail):
   - PreferenceLabel              (enum: A_BETTER, B_BETTER)
   - Hotel                        (dataclass: hotel features)
@@ -28,10 +17,6 @@ Public API (everything else is implementation detail):
                                           util_a, util_b)
   - format_dpo_example(context_prompt, option_a_text, option_b_text,
                        util_a, util_b, label)
-
-If you need the original notebook's full data-generation entry points,
-keep using icml_2026_llm_data_generation_original.py directly. This
-library file is import-safe; the original is not.
 """
 
 

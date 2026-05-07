@@ -3,8 +3,7 @@
 train_dpo.py
 ============
 
-Command-line DPO trainer. Refactored from icml_2026_llm_dpo_finetuning_original.py
-(Colab notebook) to a standalone script with full argparse control.
+Command-line DPO trainer.
 
 USAGE
 -----
@@ -36,7 +35,7 @@ UTL baseline:
 HuggingFace dataset (auto-detect by file extension):
 
     python train_dpo.py \\
-        --train-dataset cmoyacal/hotel-aug-informative-a0p50-seed7 \\
+        --train-dataset anonymous-author/hotel-aug-informative-a0p50-seed7 \\
         --experiment-name informative_a0p50 \\
         --output-base-dir ./dpo_experiments/
 
@@ -290,7 +289,7 @@ def main():
         max_length=args.max_length,
 
         logging_steps=args.logging_steps,
-        eval_strategy="steps",
+        eval_strategy="no",
         eval_steps=args.eval_steps,
         save_strategy="steps",
         save_steps=args.save_steps,
