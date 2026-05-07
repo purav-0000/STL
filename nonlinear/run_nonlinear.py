@@ -525,6 +525,7 @@ def run_smoke(args):
     with open(os.path.join(out_dir, "smoke_results.json"), "w") as f:
         json.dump(rows, f, indent=2)
     print(f"\n[smoke] wrote {os.path.join(out_dir, 'smoke_results.json')}")
+    return rows
 
 
 # =========================================================================
@@ -753,6 +754,7 @@ def run_e1_regime(rho, regime_label, args, out_dir):
         "spearman": {k: float(v) for k, v in sp.items()},
         "pearson_signed": pe,
     }
+    ensure_dir(out_dir)
     with open(os.path.join(out_dir, f"e1_{regime_label}.json"), "w") as f:
         json.dump(payload, f, indent=2)
 
@@ -782,6 +784,7 @@ def run_e1_regime(rho, regime_label, args, out_dir):
             fig.savefig(os.path.join(out_dir, fname), dpi=120)
             plt.close(fig)
     print(f"[e1] wrote 9 per-panel plots to {out_dir}/e1_{regime_label}_*.png")
+    return payload
 
 
 def run_e1(args):
@@ -794,8 +797,10 @@ def run_e1(args):
     # Mid-coupled (rho=0.5) and strong-coupled (rho=0.9): both deployment-relevant.
     # Decoupled (rho=0.0) is a control regime where no shortcut exists; per-anchor
     # signal is noise-dominated and not informative about the mechanism.
+    res = {}
     for rho, label in [(0.5, "mid_coupled"), (0.9, "coupled")]:
-        run_e1_regime(rho, label, args, out_dir)
+        res[label] = run_e1_regime(rho, label, args, out_dir)
+    return res
 
 
 # =========================================================================
@@ -947,6 +952,7 @@ def run_e2_cell(rho, regime_label, args, out_dir):
                       f"id_acc={ev['id_acc']:.3f}, adv_acc={ev['adv_acc']:.3f}, "
                       f"pos_frac={pos_frac:.2f}")
 
+    ensure_dir(out_dir)
     fname = f"e2_{regime_label}.json"
     with open(os.path.join(out_dir, fname), "w") as f:
         json.dump(rows, f, indent=2)
@@ -1016,9 +1022,12 @@ def run_e2(args):
     # Feature-known counterfactual only. The previous probe-based "agnostic"
     # operator did not preserve causal content per-anchor and has been removed.
     # Mixture mode (multiple known T_i) is the right next step but is deferred.
+    res = {}
     for rho, label in [(0.0, "decoupled"), (0.9, "coupled")]:
         rows = run_e2_cell(rho, label, args, out_dir)
         plot_e2_cell(rows, label, args.budgets, out_dir)
+        res[label] = rows
+    return res
 
 
 # =========================================================================
@@ -1079,6 +1088,7 @@ def run_e3(args):
               f"PM-HA={rec['spearman_pm_ha'][0]:.3f}, "
               f"GA-HA={rec['spearman_ga_ha'][0]:.3f}")
 
+    ensure_dir(out_dir)
     with open(os.path.join(out_dir, "e3_results.json"), "w") as f:
         json.dump(results, f, indent=2)
 
@@ -1127,6 +1137,7 @@ def run_e3(args):
     fig.savefig(os.path.join(out_dir, "e3_diagnostic.png"), dpi=120)
     plt.close(fig)
     print(f"[e3] wrote 2 per-panel plots to {out_dir}/e3_*.png")
+    return results
 
 
 # =========================================================================
@@ -1203,6 +1214,7 @@ def run_e4_score_level_regime(rho, regime_label, args, out_dir):
             "values": [float(v) for v in vals],
         }
 
+    ensure_dir(out_dir)
     payload = {"regime": regime_label, "rho": rho, "summary": summary}
     with open(os.path.join(out_dir, f"e4_score_{regime_label}.json"), "w") as f:
         json.dump(payload, f, indent=2)
@@ -1301,6 +1313,7 @@ def run_e4_ood_regime(rho, regime_label, args, out_dir):
                       f"id_acc={ev['id_acc']:.3f}, adv_acc={ev['adv_acc']:.3f}, "
                       f"pos_frac={pos_frac:.2f}")
 
+    ensure_dir(out_dir)
     with open(os.path.join(out_dir, f"e4_ood_{regime_label}.json"), "w") as f:
         json.dump(rows, f, indent=2)
     return rows
@@ -1373,13 +1386,17 @@ def run_e4(args):
     print(f"\n[e4a] wrote {os.path.join(out_dir, 'e4_score.png')}")
 
     # E4b: OOD transfer (gated)
+    ood_res = {}
     if args.include_ood:
         for rho, label in [(0.0, "decoupled"), (0.9, "coupled")]:
             rows = run_e4_ood_regime(rho, label, args, out_dir)
             plot_e4_ood(rows, label, args.budgets_ood, out_dir)
+            ood_res[label] = rows
         print(f"\n[e4b] wrote OOD plots to {out_dir}")
     else:
         print("\n[e4] skipping OOD transfer (use --include-ood to enable)")
+
+    return {"score_level": summaries, "ood": ood_res}
 
 
 # =========================================================================
@@ -1392,6 +1409,8 @@ def build_argparser():
                    choices=["smoke", "e1", "e2", "e3", "e4"])
     p.add_argument("--device", default=device_default())
     p.add_argument("--out-root", default="results")
+    p.add_argument("--save_data", action="store_true",
+                   help="Save the raw results to a pickle file.")
     p.add_argument("--quick", action="store_true",
                    help="Tiny config for sanity-check runs.")
     p.add_argument("--epochs", type=int, default=10,
@@ -1472,18 +1491,28 @@ def main():
     print(f"[run_atl] experiment={args.experiment}, device={args.device}, "
           f"quick={args.quick}, out={args.out_root}")
 
+    res = None
     if args.experiment == "smoke":
-        run_smoke(args)
+        res = run_smoke(args)
     elif args.experiment == "e1":
-        run_e1(args)
+        res = run_e1(args)
     elif args.experiment == "e2":
-        run_e2(args)
+        res = run_e2(args)
     elif args.experiment == "e3":
-        run_e3(args)
+        res = run_e3(args)
     elif args.experiment == "e4":
-        run_e4(args)
+        res = run_e4(args)
     else:
         raise ValueError(f"unknown experiment: {args.experiment}")
+
+    if getattr(args, "save_data", False) and res is not None:
+        import pickle
+        exp_dir = os.path.join(args.out_root, args.experiment)
+        ensure_dir(exp_dir)
+        pkl_path = os.path.join(exp_dir, f"data_exp_{args.experiment}.pkl")
+        with open(pkl_path, "wb") as f:
+            pickle.dump({args.experiment: res}, f)
+        print(f"\n    [data saved] {pkl_path}")
 
 
 if __name__ == "__main__":
